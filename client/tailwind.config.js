@@ -6,7 +6,7 @@ export default {
       colors: {
         primary: '#0F3A20',
         accent: '#D4AF37',
-        background: '#FAFAFA',
+        page: '#FAFAFA',
         card: '#F4F1EA',
         charcoal: '#1A1A1A',
       },
