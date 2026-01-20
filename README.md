@@ -107,6 +107,31 @@ Stitchora/
 - **Accent:** #D4AF37 (Soft Gold)
 - **Fonts:** Playfair Display (headings), Inter (body)
 
+## Troubleshooting
+
+### `ECONNREFUSED 127.0.0.1:27017`
+
+MongoDB is not running. Pick one option:
+
+**Option A — MongoDB Atlas (no local install)**
+
+1. Create a free cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas)
+2. Create a database user and allow your IP in Network Access
+3. Copy the connection string and set it in `server/.env`:
+
+```
+MONGODB_URI=mongodb+srv://USER:PASSWORD@cluster.mongodb.net/stitchora
+```
+
+4. Run `npm run seed` then `npm run dev`
+
+**Option B — Local MongoDB on Windows**
+
+1. Install [MongoDB Community Server](https://www.mongodb.com/try/download/community)
+2. Start the service: open Services (`services.msc`) → **MongoDB Server** → Start
+3. Or run in a terminal: `mongod --dbpath C:\data\db` (create the folder first if needed)
+4. Run `npm run seed` then `npm run dev`
+
 ## Production Notes
 
 - Set strong `JWT_SECRET` in production
