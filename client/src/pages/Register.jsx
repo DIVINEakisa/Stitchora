@@ -6,7 +6,7 @@ import Alert from '../components/ui/Alert';
 export default function Register() {
   const { register, user } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'customer' });
+  const [form, setForm] = useState({ name: '', email: '', phoneNumber: '', password: '', role: 'customer' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +41,11 @@ export default function Register() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Email</label>
-          <input type="email" required className="input-field" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input type="email" className="input-field" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Optional if phone is provided" />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Phone Number</label>
+          <input type="tel" className="input-field" value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} placeholder="Optional if email is provided" />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Password</label>

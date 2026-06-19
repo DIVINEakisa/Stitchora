@@ -8,6 +8,7 @@ import OrderTimeline from '../components/orders/OrderTimeline';
 import PaymentCard from '../components/orders/PaymentCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { STATUS_LABELS, formatCurrency } from '../utils/orderStatus';
+import { getImageUrl } from '../utils/imageUrl';
 
 export default function Chat() {
   const socket = useSocket();
@@ -106,7 +107,7 @@ export default function Chat() {
                   selectedOrder?._id === o._id ? 'bg-primary/10' : 'hover:bg-white/50'
                 }`}
               >
-                <img src={o.designImage} alt="" className="h-10 w-10 rounded-lg object-cover" />
+                <img src={getImageUrl(o.designImage)} alt="" className="h-10 w-10 rounded-lg object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">#{o._id.slice(-6)}</p>
                   <p className="text-xs text-charcoal/50">{STATUS_LABELS[o.status]}</p>
@@ -150,7 +151,7 @@ export default function Chat() {
                         }`}
                       >
                         {msg.imageUrl && (
-                          <img src={msg.imageUrl} alt="Shared" className="mb-2 max-h-48 rounded-lg" />
+                          <img src={getImageUrl(msg.imageUrl)} alt="Shared" className="mb-2 max-h-48 rounded-lg" />
                         )}
                         {msg.content && <p className="text-sm">{msg.content}</p>}
                         <p className={`mt-1 text-xs ${isMine ? 'text-white/60' : 'text-charcoal/40'}`}>
@@ -203,7 +204,7 @@ export default function Chat() {
 
             <aside className="hidden w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l border-primary/10 p-4 xl:flex">
               <div className="card-surface !p-4">
-                <img src={selectedOrder.designImage} alt="" className="h-24 w-full rounded-lg object-cover" />
+                <img src={getImageUrl(selectedOrder.designImage)} alt="" className="h-24 w-full rounded-lg object-cover" />
                 <p className="mt-2 text-sm font-medium">{STATUS_LABELS[selectedOrder.status]}</p>
                 {selectedOrder.totalPrice > 0 && (
                   <p className="text-sm text-charcoal/60">{formatCurrency(selectedOrder.totalPrice)}</p>

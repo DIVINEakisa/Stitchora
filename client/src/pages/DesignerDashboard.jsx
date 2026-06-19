@@ -5,6 +5,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Modal from '../components/ui/Modal';
 import Alert from '../components/ui/Alert';
 import { STATUS_LABELS } from '../utils/orderStatus';
+import { getImageUrl } from '../utils/imageUrl';
 
 export default function DesignerDashboard() {
   const [incoming, setIncoming] = useState([]);
@@ -115,7 +116,7 @@ export default function DesignerDashboard() {
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             {incoming.map((order) => (
               <div key={order._id} className="card-surface flex flex-col gap-4 sm:flex-row">
-                <img src={order.designImage} alt="" className="h-32 w-32 shrink-0 rounded-xl object-cover" />
+                <img src={getImageUrl(order.designImage)} alt="" className="h-32 w-32 shrink-0 rounded-xl object-cover" />
                 <div className="flex-1">
                   <p className="font-medium">{order.customer?.name}</p>
                   <dl className="mt-2 grid grid-cols-2 gap-1 text-xs text-charcoal/60">
@@ -168,7 +169,7 @@ export default function DesignerDashboard() {
               {myOrders.map((order) => (
                 <tr key={order._id} className="border-b border-primary/5">
                   <td className="py-4 pr-4">
-                    <img src={order.designImage} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                    <img src={getImageUrl(order.designImage)} alt="" className="h-12 w-12 rounded-lg object-cover" />
                   </td>
                   <td className="py-4 pr-4">{order.customer?.name}</td>
                   <td className="py-4 pr-4">

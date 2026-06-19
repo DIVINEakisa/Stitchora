@@ -6,7 +6,7 @@ import Alert from '../components/ui/Alert';
 export default function Login() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const u = await login(email, password);
+      const u = await login(identifier, password);
       navigate(u.role === 'designer' ? '/designer' : '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
@@ -37,8 +37,8 @@ export default function Login() {
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         {error && <Alert type="error" message={error} onClose={() => setError('')} />}
         <div>
-          <label className="mb-1 block text-sm font-medium">Email</label>
-          <input type="email" required className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <label className="mb-1 block text-sm font-medium">Email or Phone Number</label>
+          <input type="text" required className="input-field" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Enter your email or phone number" />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Password</label>

@@ -1,6 +1,8 @@
 import express from 'express';
 import Order, { ORDER_STATUSES } from '../models/Order.js';
+import User from '../models/User.js';
 import { protect, authorize } from '../middleware/auth.js';
+import { initiatePayment, verifyPayment } from '../config/payment.js';
 
 const router = express.Router();
 
@@ -154,8 +156,17 @@ router.patch('/:id/status', protect, authorize('designer'), async (req, res) => 
   }
 });
 
-router.post('/:id/pay-deposit', protect, authorize('customer'), async (req, res) => {
+router.post('/:id/pay-deposit-initiate', protect, authorize('customer'), async (req, res) => {
   try {
+    const { paymentMethod, phoneNumber } = req.body;
+
+    if (!paymentMethod || !['mtn', 'airtel'].includes(paymentMethod.toLowerCase())) {
+      return res.status(400).json({ message: 'Invalid payment method' });
+    }
+    if (!phoneNumber) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
     const order = await Order.findById(req.params.id);
     if (!order || order.customer.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
@@ -167,20 +178,106 @@ router.post('/:id/pay-deposit', protect, authorize('customer'), async (req, res)
       return res.status(400).json({ message: 'Deposit already paid' });
     }
 
-    order.paymentStatus = 'partially_paid';
-    order.status = 'deposit_paid';
-    order.depositPaidAt = new Date();
+    // Initiate payment with provider
+    const transactionRef = `deposit-${order._id}-${Date.now()}`;
+    const paymentData = {
+      amount: order.depositAmount,
+      email: req.user.email,
+      phoneNumber,
+      paymentMethod,
+      orderRef: transactionRef,
+      customerName: req.user.name,
+    };
+
+    const paymentResponse = await initiatePayment(paymentData);
+
+    // Store payment transaction
+    order.depositTransaction = {
+      type: 'deposit',
+      amount: order.depositAmount,
+      paymentMethod: paymentMethod.toLowerCase(),
+      phoneNumber,
+      status: 'processing',
+      transactionRef,
+      transactionId: paymentResponse.transactionId,
+      initiatedAt: new Date(),
+    };
+
     await order.save();
 
-    const populated = await populateOrder(Order.findById(order._id));
-    res.json(populated);
+    res.json({
+      success: true,
+      transactionRef,
+      transactionId: paymentResponse.transactionId,
+      authUrl: paymentResponse.authUrl,
+      message: 'Payment initiated. Please complete payment on your phone.',
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(400).json({ message: err.message });
   }
 });
 
-router.post('/:id/pay-remaining', protect, authorize('customer'), async (req, res) => {
+router.post('/:id/pay-deposit-confirm', protect, authorize('customer'), async (req, res) => {
   try {
+    const { transactionRef } = req.body;
+
+    if (!transactionRef) {
+      return res.status(400).json({ message: 'Transaction reference is required' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order || order.customer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    if (!order.depositTransaction || order.depositTransaction.transactionRef !== transactionRef) {
+      return res.status(400).json({ message: 'Invalid transaction reference' });
+    }
+
+    // Verify payment with provider
+    const verification = await verifyPayment(transactionRef);
+
+    if (!verification.isSuccessful) {
+      order.depositTransaction.status = 'failed';
+      order.depositTransaction.failureReason = 'Payment verification failed';
+      await order.save();
+      return res.status(400).json({ message: 'Payment was not successful. Please try again.' });
+    }
+
+    // Mark payment as successful
+    order.depositTransaction.status = 'success';
+    order.depositTransaction.confirmedAt = new Date();
+    order.paymentStatus = 'partially_paid';
+    order.status = 'deposit_paid';
+    order.depositPaidAt = new Date();
+
+    await order.save();
+
+    // Notify designer that deposit was paid
+    // TODO: Send notification/email to designer
+
+    const populated = await populateOrder(Order.findById(order._id));
+    res.json({
+      success: true,
+      message: 'Deposit payment confirmed! Production will begin soon.',
+      order: populated,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+router.post('/:id/pay-remaining-initiate', protect, authorize('customer'), async (req, res) => {
+  try {
+    const { paymentMethod, phoneNumber } = req.body;
+
+    if (!paymentMethod || !['mtn', 'airtel'].includes(paymentMethod.toLowerCase())) {
+      return res.status(400).json({ message: 'Invalid payment method' });
+    }
+    if (!phoneNumber) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
     const order = await Order.findById(req.params.id);
     if (!order || order.customer.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
@@ -192,12 +289,112 @@ router.post('/:id/pay-remaining', protect, authorize('customer'), async (req, re
       return res.status(400).json({ message: 'Already fully paid' });
     }
 
-    order.paymentStatus = 'fully_paid';
-    order.finalPaidAt = new Date();
+    // Initiate payment
+    const transactionRef = `remaining-${order._id}-${Date.now()}`;
+    const paymentData = {
+      amount: order.remainingAmount,
+      email: req.user.email,
+      phoneNumber,
+      paymentMethod,
+      orderRef: transactionRef,
+      customerName: req.user.name,
+    };
+
+    const paymentResponse = await initiatePayment(paymentData);
+
+    // Store payment transaction
+    order.remainingTransaction = {
+      type: 'remaining',
+      amount: order.remainingAmount,
+      paymentMethod: paymentMethod.toLowerCase(),
+      phoneNumber,
+      status: 'processing',
+      transactionRef,
+      transactionId: paymentResponse.transactionId,
+      initiatedAt: new Date(),
+    };
+
     await order.save();
 
+    res.json({
+      success: true,
+      transactionRef,
+      transactionId: paymentResponse.transactionId,
+      authUrl: paymentResponse.authUrl,
+      message: 'Payment initiated. Please complete payment on your phone.',
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+router.post('/:id/pay-remaining-confirm', protect, authorize('customer'), async (req, res) => {
+  try {
+    const { transactionRef } = req.body;
+
+    if (!transactionRef) {
+      return res.status(400).json({ message: 'Transaction reference is required' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order || order.customer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    if (!order.remainingTransaction || order.remainingTransaction.transactionRef !== transactionRef) {
+      return res.status(400).json({ message: 'Invalid transaction reference' });
+    }
+
+    // Verify payment
+    const verification = await verifyPayment(transactionRef);
+
+    if (!verification.isSuccessful) {
+      order.remainingTransaction.status = 'failed';
+      order.remainingTransaction.failureReason = 'Payment verification failed';
+      await order.save();
+      return res.status(400).json({ message: 'Payment was not successful. Please try again.' });
+    }
+
+    // Mark payment as successful
+    order.remainingTransaction.status = 'success';
+    order.remainingTransaction.confirmedAt = new Date();
+    order.paymentStatus = 'fully_paid';
+    order.finalPaidAt = new Date();
+
+    await order.save();
+
+    // TODO: Transfer funds to designer's account
+    // Transfer logic based on designer's payment preference
+
     const populated = await populateOrder(Order.findById(order._id));
-    res.json(populated);
+    res.json({
+      success: true,
+      message: 'Final payment confirmed! Your order will be delivered soon.',
+      order: populated,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Keep old endpoints for backward compatibility (but they now do nothing)
+router.post('/:id/pay-deposit', protect, authorize('customer'), async (req, res) => {
+  try {
+    return res.status(400).json({
+      message: 'Payment method has been updated. Please use the new payment flow.',
+      useNewFlow: true,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/:id/pay-remaining', protect, authorize('customer'), async (req, res) => {
+  try {
+    return res.status(400).json({
+      message: 'Payment method has been updated. Please use the new payment flow.',
+      useNewFlow: true,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

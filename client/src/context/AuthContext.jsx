@@ -19,8 +19,8 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
+  const login = async (identifier, password) => {
+    const { data } = await api.post('/auth/login', { identifier, password });
     persist(data.user, data.token);
     return data.user;
   };

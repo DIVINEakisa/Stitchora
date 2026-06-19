@@ -1,11 +1,20 @@
-import { formatCurrency, PAYMENT_LABELS } from '../../utils/orderStatus';
+import { formatCurrency, PAYMENT_LABELS } from "../../utils/orderStatus";
 
-export default function PaymentCard({ order, onPayDeposit, onPayRemaining, loading }) {
-  const { totalPrice, depositAmount, remainingAmount, paymentStatus, status } = order;
+export default function PaymentCard({
+  order,
+  onPayDeposit,
+  onPayRemaining,
+  loading,
+  onOpenPaymentModal,
+}) {
+  const { totalPrice, depositAmount, remainingAmount, paymentStatus, status } =
+    order;
 
   return (
     <div className="card-surface">
-      <h3 className="font-display text-lg font-semibold text-primary">Payment</h3>
+      <h3 className="font-display text-lg font-semibold text-primary">
+        Payment
+      </h3>
       <div className="mt-4 space-y-3">
         <div className="flex justify-between text-sm">
           <span className="text-charcoal/60">Total Price</span>
@@ -27,30 +36,40 @@ export default function PaymentCard({ order, onPayDeposit, onPayRemaining, loadi
         </div>
       </div>
 
-      {paymentStatus === 'pending' && status === 'reviewed' && onPayDeposit && (
-        <button
-          type="button"
-          onClick={onPayDeposit}
-          disabled={loading}
-          className="btn-accent mt-6 w-full"
-        >
-          {loading ? 'Processing...' : `Pay Deposit ${formatCurrency(depositAmount)}`}
-        </button>
-      )}
+      {paymentStatus === "pending" &&
+        status === "reviewed" &&
+        onOpenPaymentModal && (
+          <button
+            type="button"
+            onClick={() => onOpenPaymentModal("deposit")}
+            disabled={loading}
+            className="btn-accent mt-6 w-full"
+          >
+            {loading
+              ? "Processing..."
+              : `Pay Deposit ${formatCurrency(depositAmount)}`}
+          </button>
+        )}
 
-      {paymentStatus === 'partially_paid' && status === 'ready' && onPayRemaining && (
-        <button
-          type="button"
-          onClick={onPayRemaining}
-          disabled={loading}
-          className="btn-accent mt-6 w-full"
-        >
-          {loading ? 'Processing...' : `Pay Remaining ${formatCurrency(remainingAmount)}`}
-        </button>
-      )}
+      {paymentStatus === "partially_paid" &&
+        status === "ready" &&
+        onOpenPaymentModal && (
+          <button
+            type="button"
+            onClick={() => onOpenPaymentModal("remaining")}
+            disabled={loading}
+            className="btn-accent mt-6 w-full"
+          >
+            {loading
+              ? "Processing..."
+              : `Pay Remaining ${formatCurrency(remainingAmount)}`}
+          </button>
+        )}
 
-      {paymentStatus === 'fully_paid' && (
-        <p className="mt-4 text-center text-sm text-primary">All payments complete</p>
+      {paymentStatus === "fully_paid" && (
+        <p className="mt-4 text-center text-sm text-primary">
+          All payments complete
+        </p>
       )}
     </div>
   );

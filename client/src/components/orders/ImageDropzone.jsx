@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import api from '../../api/axios';
+import { getImageUrl } from '../../utils/imageUrl';
 
 export default function ImageDropzone({ onUploaded, preview }) {
   const [dragging, setDragging] = useState(false);
@@ -48,7 +49,7 @@ export default function ImageDropzone({ onUploaded, preview }) {
         }`}
       >
         {preview ? (
-          <img src={preview} alt="Design preview" className="max-h-64 rounded-xl object-contain" />
+          <img src={getImageUrl(preview)} alt="Design preview" className="max-h-64 rounded-xl object-contain" />
         ) : (
           <>
             <svg className="h-12 w-12 text-primary/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">

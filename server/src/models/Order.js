@@ -1,16 +1,16 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 export const ORDER_STATUSES = [
-  'requested',
-  'reviewed',
-  'deposit_paid',
-  'in_production',
-  'ready',
-  'delivered',
-  'rejected',
+  "requested",
+  "reviewed",
+  "deposit_paid",
+  "in_production",
+  "ready",
+  "delivered",
+  "rejected",
 ];
 
-export const PAYMENT_STATUSES = ['pending', 'partially_paid', 'fully_paid'];
+export const PAYMENT_STATUSES = ["pending", "partially_paid", "fully_paid"];
 
 const measurementSchema = new mongoose.Schema(
   {
@@ -20,23 +20,47 @@ const measurementSchema = new mongoose.Schema(
     shoulders: Number,
     inseam: Number,
   },
-  { _id: false }
+  { _id: false },
+);
+
+const paymentTransactionSchema = new mongoose.Schema(
+  {
+    type: { type: String, enum: ["deposit", "remaining"], required: true },
+    amount: { type: Number, required: true },
+    paymentMethod: { type: String, enum: ["mtn", "airtel"], required: true },
+    phoneNumber: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["pending", "processing", "success", "failed"],
+      default: "pending",
+    },
+    transactionRef: String, // Reference from payment provider
+    transactionId: String, // Unique transaction ID
+    initiatedAt: { type: Date, default: Date.now },
+    confirmedAt: Date,
+    failureReason: String,
+  },
+  { _id: false },
 );
 
 const orderSchema = new mongoose.Schema(
   {
-    customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    designer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    customer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    designer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     designImage: { type: String, required: true },
     measurements: measurementSchema,
-    fabric: { type: mongoose.Schema.Types.ObjectId, ref: 'Fabric' },
+    fabric: { type: mongoose.Schema.Types.ObjectId, ref: "Fabric" },
     designerChoosesFabric: { type: Boolean, default: false },
     preferredCompletionDate: { type: Date },
     estimatedCompletionDate: { type: Date },
     status: {
       type: String,
       enum: ORDER_STATUSES,
-      default: 'requested',
+      default: "requested",
     },
     totalPrice: { type: Number, default: 0 },
     depositAmount: { type: Number, default: 0 },
@@ -44,23 +68,26 @@ const orderSchema = new mongoose.Schema(
     paymentStatus: {
       type: String,
       enum: PAYMENT_STATUSES,
-      default: 'pending',
+      default: "pending",
     },
     depositPaidAt: Date,
     finalPaidAt: Date,
-    rejectReason: { type: String, default: '' },
-    rejectSuggestions: { type: String, default: '' },
-    notes: { type: String, default: '' },
+    depositTransaction: paymentTransactionSchema,
+    remainingTransaction: paymentTransactionSchema,
+    rejectReason: { type: String, default: "" },
+    rejectSuggestions: { type: String, default: "" },
+    notes: { type: String, default: "" },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-orderSchema.pre('save', function (next) {
-  if (this.isModified('totalPrice') && this.totalPrice > 0) {
+orderSchema.pre("save", function (next) {
+  if (this.isModified("totalPrice") && this.totalPrice > 0) {
     this.depositAmount = Math.round(this.totalPrice * 0.5 * 100) / 100;
-    this.remainingAmount = Math.round((this.totalPrice - this.depositAmount) * 100) / 100;
+    this.remainingAmount =
+      Math.round((this.totalPrice - this.depositAmount) * 100) / 100;
   }
   next();
 });
 
-export default mongoose.model('Order', orderSchema);
+export default mongoose.model("Order", orderSchema);
